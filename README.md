@@ -231,13 +231,6 @@ go/
 - macOS 和 Linux 支持有限（键盘模拟功能可能不完整）
 - 不支持 Cloudflare Workers 模式（仅局域网）
 
-## 📝 开发计划
-
-- [ ] 支持 macOS 和 Linux 键盘模拟
-- [ ] 添加 Cloudflare Workers 模式
-- [ ] 支持自定义快捷键
-- [ ] 添加输入统计功能
-
 ## 🙏 致谢
 
 - **Python 版本**：原始实现
