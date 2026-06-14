@@ -48,6 +48,32 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             margin-bottom: 20px;
         }
+        .settings-container {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .setting-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .setting-row label {
+            min-width: 92px;
+            color: #555;
+        }
+        .setting-row input {
+            flex: 1;
+        }
+        .setting-row output {
+            width: 36px;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+            color: #333;
+        }
         .ip-list {
             list-style: none;
             padding: 0;
@@ -117,6 +143,15 @@
         <h2>可访问地址</h2>
         <ul class="ip-list" id="ipList">Loading...</ul>
     </div>
+
+    <div class="settings-container">
+        <h2>配置</h2>
+        <div class="setting-row">
+            <label for="sensitivity">灵敏度</label>
+            <input id="sensitivity" type="range" min="0.5" max="5" step="0.1" value="1.5">
+            <output id="sensitivityValue">1.5</output>
+        </div>
+    </div>
     
     <div class="instructions">
         <h2>使用说明</h2>
@@ -130,6 +165,7 @@
     
     <script>
         let currentSelectedUrl = '';
+        let saveConfigTimer = null;
         
         async function updateQR(inputUrl) {
             try {
@@ -198,8 +234,40 @@
                 console.error('Error:', error);
             }
         }
+
+        async function loadConfig() {
+            try {
+                const response = await fetch('/config');
+                const data = await response.json();
+                const slider = document.getElementById('sensitivity');
+                const output = document.getElementById('sensitivityValue');
+                const value = Number(data.sensitivity || data.scrollSensitivity || 1.5);
+                slider.value = Math.min(5, Math.max(0.5, value)).toFixed(1);
+                output.value = Number(slider.value).toFixed(1);
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        function bindConfigControls() {
+            const slider = document.getElementById('sensitivity');
+            const output = document.getElementById('sensitivityValue');
+            slider.addEventListener('input', function() {
+                output.value = Number(slider.value).toFixed(1);
+                clearTimeout(saveConfigTimer);
+                saveConfigTimer = setTimeout(() => {
+                    fetch('/config', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ sensitivity: Number(slider.value) })
+                    }).catch(() => {});
+                }, 350);
+            });
+        }
         
         loadData();
+        loadConfig();
+        bindConfigControls();
     </script>
 </body>
 </html>

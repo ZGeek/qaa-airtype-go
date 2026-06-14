@@ -2,76 +2,218 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>无线键盘</title>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            padding: 20px;
-            text-align: center;
-            background-color: #f5f5f7;
+        :root {
+            --send-height: 74px;
+            --keyboard-offset: 0px;
+            --input-height: 96px;
+            --pad-height: 150px;
+        }
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            overscroll-behavior: none;
+            background: #f5f5f7;
             color: #333;
-        }
-        h2 { margin-bottom: 20px; font-weight: 600; }
-        .input-group { margin-bottom: 15px; }
-        textarea {
-            width: 100%; padding: 15px; font-size: 16px; border-radius: 12px;
-            border: 1px solid #d1d1d6; box-sizing: border-box; outline: none;
-            background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            transition: border-color 0.2s;
-            min-height: 120px;
-            resize: vertical;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
-        textarea:focus { border-color: #007AFF; }
-        .button-group { display: flex; gap: 10px; margin-bottom: 15px; }
-        button {
-            flex: 1; padding: 15px; font-size: 18px; color: white;
-            border: none; border-radius: 12px; cursor: pointer; font-weight: 600;
-            transition: background-color 0.1s, transform 0.1s;
+        body {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 14px 14px calc(var(--send-height) + 18px + env(safe-area-inset-bottom));
+            overflow: hidden;
         }
-        button#sendBtn {
-            background-color: #007AFF;
-            box-shadow: 0 4px 6px rgba(0,122,255,0.2);
+        textarea {
+            width: 100%;
+            height: var(--input-height);
+            flex: 0 0 auto;
+            padding: 15px;
+            font-size: 16px;
+            line-height: 1.45;
+            border-radius: 12px;
+            border: 1px solid #d1d1d6;
+            outline: none;
+            background: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            resize: none;
+            font-family: inherit;
         }
-        button#sendBtn:active { background-color: #0056b3; transform: scale(0.98); }
-        button#clearBtn {
-            background-color: #8e8e93;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        textarea:focus {
+            border-color: #007AFF;
         }
-        button#clearBtn:active { background-color: #636366; transform: scale(0.98); }
-        #status { margin-top: 10px; height: 20px; font-size: 14px; color: #34c759; font-weight: 500;}
-        .history-container { margin-top: 30px; text-align: left; }
+        .pad-area {
+            height: var(--pad-height);
+            flex: 0 0 var(--pad-height);
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 74px;
+            gap: 12px;
+        }
+        .surface {
+            min-height: 0;
+            border: 1px solid #e5e5ea;
+            border-radius: 12px;
+            background: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6e6e73;
+            overflow: hidden;
+        }
+        .surface.active {
+            border-color: #007AFF;
+            background: #eef5ff;
+        }
+        .touchpad {
+            padding: 16px;
+        }
+        .touchpad-inner {
+            width: 100%;
+            height: 100%;
+            border: 1px dashed #d1d1d6;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #8e8e93;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+        .scroll-grip {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+        }
+        .scroll-grip span {
+            display: block;
+            width: 34px;
+            height: 5px;
+            border-radius: 999px;
+            background: currentColor;
+        }
+        .history-container {
+            flex: 0 0 auto;
+            text-align: left;
+        }
         .history-header {
-            font-size: 14px; color: #888; margin-bottom: 10px;
-            display: flex; justify-content: space-between; align-items: center;
+            height: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #888;
+            font-size: 13px;
         }
-        .clear-btn { color: #ff3b30; cursor: pointer; font-size: 12px; }
-        .history-list { list-style: none; padding: 0; margin: 0; }
+        .clear-btn {
+            color: #ff3b30;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+        .history-list {
+            padding: 0;
+            margin: 0;
+            list-style: none;
+            overflow: auto;
+            overscroll-behavior: contain;
+        }
         .history-item {
-            background: #fff; padding: 12px; margin-bottom: 8px; border-radius: 8px;
-            border: 1px solid #e5e5ea; cursor: pointer;
-            display: flex; align-items: center; justify-content: space-between;
-            transition: background 0.1s;
+            min-height: 50px;
+            padding: 8px 13px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            border: 1px solid #e5e5ea;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            cursor: pointer;
         }
-        .history-item:active { background: #f0f0f0; }
         .history-text {
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-            max-width: 85%; font-size: 14px;
+            min-width: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 15px;
+            line-height: 1.35;
         }
-        .history-arrow { color: #c7c7cc; font-size: 18px; }
+        .history-arrow {
+            flex: 0 0 auto;
+            color: #c7c7cc;
+        }
+        #status {
+            flex: 0 0 18px;
+            min-height: 18px;
+            font-size: 13px;
+            color: #34c759;
+            text-align: center;
+            line-height: 18px;
+        }
+        .send-bar {
+            position: fixed;
+            left: 14px;
+            right: 14px;
+            bottom: calc(var(--keyboard-offset) + 10px + env(safe-area-inset-bottom));
+            z-index: 30;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+        button {
+            width: 100%;
+            height: 58px;
+            padding: 0 16px;
+            font-size: 18px;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            background-color: #007AFF;
+            box-shadow: 0 4px 9px rgba(0,122,255,0.24);
+            transition: background-color 0.1s, transform 0.1s;
+            touch-action: manipulation;
+        }
+        button:active {
+            background-color: #0056b3;
+            transform: scale(0.99);
+        }
     </style>
 </head>
 <body>
-    <h2>电脑远程输入板</h2>
-    <div class="input-group">
-        <textarea id="textInput" placeholder="输入文字..." autofocus autocomplete="off" enterkeyhint="send"></textarea>
+    <textarea id="textInput" placeholder="输入文字..." autofocus autocomplete="off" enterkeyhint="send"></textarea>
+
+    <div class="pad-area">
+        <div id="touchpad" class="surface touchpad" aria-label="虚拟触摸板">
+            <div class="touchpad-inner">虚拟触摸板</div>
+        </div>
+        <div id="scrollZone" class="surface" aria-label="触摸滚动区">
+            <div class="scroll-grip">
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
     </div>
-    <div class="button-group">
-        <button id="clearBtn" onclick="handleClear()">清空</button>
-        <button id="sendBtn" onclick="handleSend()">发送 (Enter)</button>
-    </div>
-    <div id="status"></div>
+
     <div class="history-container">
         <div class="history-header">
             <span>最近记录 (点击重发)</span>
@@ -79,15 +221,64 @@
         </div>
         <ul id="historyList" class="history-list"></ul>
     </div>
+
+    <div id="status"></div>
+    <div class="send-bar">
+        <button id="sendBtn" onclick="handleSend()">发送 (Enter)</button>
+    </div>
+
     <script>
         const input = document.getElementById('textInput');
         const status = document.getElementById('status');
+        const touchpad = document.getElementById('touchpad');
+        const scrollZone = document.getElementById('scrollZone');
         const historyList = document.getElementById('historyList');
+        const sendBar = document.querySelector('.send-bar');
+        const sendBtn = document.getElementById('sendBtn');
+        const root = document.documentElement;
         const MAX_HISTORY = 10;
 
-        window.onload = function() { renderHistory(); }
+        let scrollPointerId = null;
+        let scrollTouchId = null;
+        let scrollStartY = 0;
+        let lastScrollMoveAt = 0;
+        let scrollSocket = null;
+        let scrollSocketReady = false;
+        let scrollSocketRetryTimer = null;
+        let touchStartPrimed = false;
+        let scrollStartSent = false;
+        let scrollPendingRequests = [];
+        let scrollRequestInFlight = false;
 
-        // 支持 Enter 发送（Shift+Enter 换行）
+        let touchpadSocket = null;
+        let touchpadSocketReady = false;
+        let touchpadSocketRetryTimer = null;
+        let padPointerId = null;
+        let padStartX = 0;
+        let padStartY = 0;
+        let padLastX = 0;
+        let padLastY = 0;
+        let padMoved = false;
+        let padLongPressFired = false;
+        let padDragMode = false;
+        let padLongPressTimer = null;
+        let lastPadMoveAt = 0;
+        const PAD_MOVE_THRESHOLD = 7;
+        const LONG_PRESS_MS = 560;
+
+        window.onload = function() {
+            renderHistory();
+            connectScrollSocket();
+            connectTouchpadSocket();
+            updateKeyboardOffset();
+        };
+
+        if (window.visualViewport) {
+            visualViewport.addEventListener('resize', updateKeyboardOffset);
+            visualViewport.addEventListener('scroll', updateKeyboardOffset);
+        }
+        window.addEventListener('resize', updateKeyboardOffset);
+
         input.addEventListener("keydown", function(event) {
             if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();
@@ -95,15 +286,365 @@
             }
         });
 
-        document.body.addEventListener('click', function(event) {
-            const target = event.target;
-            if (!target.closest('button') &&
-                !target.closest('.history-item') &&
-                !target.closest('.clear-btn') &&
-                target !== input) {
-                input.focus();
+        [touchpad, scrollZone].forEach(element => {
+            element.addEventListener('contextmenu', function(event) {
+                event.preventDefault();
+            });
+            element.addEventListener('touchmove', function(event) {
+                event.preventDefault();
+            }, { passive: false });
+        });
+        [sendBar, sendBtn].forEach(element => {
+            element.addEventListener('contextmenu', function(event) {
+                event.preventDefault();
+            });
+            element.addEventListener('touchmove', function(event) {
+                event.preventDefault();
+            }, { passive: false });
+        });
+
+        touchpad.addEventListener('touchstart', function(event) {
+            if (event.touches.length < 2) { return; }
+            event.preventDefault();
+            clearPadLongPressTimer();
+            if (padDragMode) {
+                sendTouchpadRequest({ action: 'leftUp' });
+            }
+            resetTouchpadGesture();
+            sendTouchpadRequest({ action: 'rightClick' });
+        }, { passive: false });
+
+        touchpad.addEventListener('pointerdown', function(event) {
+            event.preventDefault();
+            if (!event.isPrimary) { return; }
+            if (padPointerId !== null) { return; }
+            padPointerId = event.pointerId;
+            padStartX = padLastX = event.clientX;
+            padStartY = padLastY = event.clientY;
+            padMoved = false;
+            padLongPressFired = false;
+            padDragMode = false;
+            lastPadMoveAt = 0;
+            touchpad.classList.add('active');
+            touchpad.setPointerCapture(event.pointerId);
+            clearPadLongPressTimer();
+            padLongPressTimer = setTimeout(function() {
+                if (!padMoved && padPointerId !== null) {
+                    padLongPressFired = true;
+                    startPadDragMode();
+                }
+            }, LONG_PRESS_MS);
+        });
+
+        touchpad.addEventListener('pointermove', function(event) {
+            if (event.pointerId !== padPointerId) { return; }
+            event.preventDefault();
+            const events = event.getCoalescedEvents ? event.getCoalescedEvents() : [event];
+            const latest = events[events.length - 1] || event;
+            const totalDx = latest.clientX - padStartX;
+            const totalDy = latest.clientY - padStartY;
+            if (Math.hypot(totalDx, totalDy) > PAD_MOVE_THRESHOLD) {
+                padMoved = true;
+                if (!padDragMode) {
+                    clearPadLongPressTimer();
+                }
+            }
+
+            const now = performance.now();
+            if (now - lastPadMoveAt < 8) { return; }
+            lastPadMoveAt = now;
+
+            const dx = latest.clientX - padLastX;
+            const dy = latest.clientY - padLastY;
+            padLastX = latest.clientX;
+            padLastY = latest.clientY;
+            if (dx || dy) {
+                sendTouchpadRequest({
+                    action: 'move',
+                    dx: dx,
+                    dy: dy
+                });
             }
         });
+
+        touchpad.addEventListener('pointerup', endTouchpadGesture);
+        touchpad.addEventListener('pointercancel', cancelTouchpadGesture);
+
+        scrollZone.addEventListener('touchstart', function(event) {
+            event.preventDefault();
+            if (scrollTouchId !== null || scrollStartSent) { return; }
+            const touch = event.changedTouches && event.changedTouches[0];
+            if (!touch) { return; }
+            scrollTouchId = touch.identifier;
+            touchStartPrimed = true;
+            scrollStartY = touch.clientY;
+            lastScrollMoveAt = 0;
+            scrollZone.classList.add('active');
+            sendScrollStart();
+        }, { passive: false });
+
+        scrollZone.addEventListener('touchmove', function(event) {
+            if (scrollTouchId === null) { return; }
+            event.preventDefault();
+            const touch = findTouch(event.touches, scrollTouchId);
+            if (!touch) { return; }
+            sendScrollMove(touch.clientY);
+        }, { passive: false });
+
+        scrollZone.addEventListener('touchend', endTouchScrollByTouch, { passive: false });
+        scrollZone.addEventListener('touchcancel', cancelTouchScrollByTouch, { passive: false });
+
+        scrollZone.addEventListener('pointerdown', function(event) {
+            event.preventDefault();
+            if (scrollTouchId !== null) { return; }
+            scrollPointerId = event.pointerId;
+            scrollZone.classList.add('active');
+            scrollZone.setPointerCapture(event.pointerId);
+            if (!touchStartPrimed) {
+                scrollStartY = event.clientY;
+                lastScrollMoveAt = 0;
+                sendScrollStart();
+            }
+            touchStartPrimed = false;
+        });
+
+        scrollZone.addEventListener('pointermove', function(event) {
+            if (event.pointerId !== scrollPointerId) { return; }
+            event.preventDefault();
+            const events = event.getCoalescedEvents ? event.getCoalescedEvents() : [event];
+            const latest = events[events.length - 1] || event;
+            sendScrollMove(latest.clientY);
+        });
+
+        scrollZone.addEventListener('pointerup', endTouchScroll);
+        scrollZone.addEventListener('pointercancel', cancelTouchScroll);
+
+        function endTouchpadGesture(event) {
+            if (event.pointerId !== padPointerId) { return; }
+            event.preventDefault();
+            clearPadLongPressTimer();
+            if (padDragMode) {
+                sendTouchpadRequest({ action: 'leftUp' });
+            } else if (!padMoved && !padLongPressFired) {
+                sendTouchpadRequest({ action: 'leftClick' });
+            }
+            resetTouchpadGesture();
+        }
+
+        function cancelTouchpadGesture(event) {
+            if (event.pointerId !== padPointerId) { return; }
+            event.preventDefault();
+            clearPadLongPressTimer();
+            if (padDragMode) {
+                sendTouchpadRequest({ action: 'leftUp' });
+            }
+            resetTouchpadGesture();
+        }
+
+        function resetTouchpadGesture() {
+            touchpad.classList.remove('active');
+            padPointerId = null;
+            padMoved = false;
+            padLongPressFired = false;
+            padDragMode = false;
+        }
+
+        function clearPadLongPressTimer() {
+            if (padLongPressTimer) {
+                clearTimeout(padLongPressTimer);
+                padLongPressTimer = null;
+            }
+        }
+
+        function startPadDragMode() {
+            if (padDragMode || padPointerId === null) { return; }
+            clearPadLongPressTimer();
+            padDragMode = true;
+            padLongPressFired = false;
+            sendTouchpadRequest({ action: 'leftDown' });
+        }
+
+        function endTouchScroll(event) {
+            if (event.pointerId !== scrollPointerId) { return; }
+            event.preventDefault();
+            resetScrollGesture();
+            sendScrollRequest({ phase: 'end', offsetY: event.clientY - scrollStartY });
+        }
+
+        function cancelTouchScroll(event) {
+            if (event.pointerId !== scrollPointerId) { return; }
+            event.preventDefault();
+            resetScrollGesture();
+            sendScrollRequest({ phase: 'cancel', offsetY: 0 });
+        }
+
+        function endTouchScrollByTouch(event) {
+            if (scrollTouchId === null) { return; }
+            const touch = findTouch(event.changedTouches, scrollTouchId);
+            if (!touch) { return; }
+            event.preventDefault();
+            resetScrollGesture();
+            sendScrollRequest({ phase: 'end', offsetY: touch.clientY - scrollStartY });
+        }
+
+        function cancelTouchScrollByTouch(event) {
+            if (scrollTouchId === null) { return; }
+            const touch = findTouch(event.changedTouches, scrollTouchId);
+            if (!touch) { return; }
+            event.preventDefault();
+            resetScrollGesture();
+            sendScrollRequest({ phase: 'cancel', offsetY: 0 });
+        }
+
+        function resetScrollGesture() {
+            scrollZone.classList.remove('active');
+            scrollPointerId = null;
+            scrollTouchId = null;
+            touchStartPrimed = false;
+            scrollStartSent = false;
+        }
+
+        function sendScrollMove(clientY) {
+            const now = performance.now();
+            if (now - lastScrollMoveAt < 8) { return; }
+            lastScrollMoveAt = now;
+            sendScrollRequest({ phase: 'move', offsetY: clientY - scrollStartY });
+        }
+
+        function findTouch(touchList, identifier) {
+            for (let i = 0; i < touchList.length; i++) {
+                if (touchList[i].identifier === identifier) {
+                    return touchList[i];
+                }
+            }
+            return null;
+        }
+
+        function sendScrollStart() {
+            if (scrollStartSent) { return; }
+            scrollStartSent = true;
+            connectScrollSocket();
+            sendScrollRequest({ phase: 'start', offsetY: 0 });
+        }
+
+        function connectScrollSocket() {
+            if (scrollSocket && (
+                scrollSocket.readyState === WebSocket.OPEN ||
+                scrollSocket.readyState === WebSocket.CONNECTING
+            )) { return; }
+
+            const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            scrollSocket = new WebSocket(protocol + '//' + location.host + '/scroll-ws');
+            scrollSocket.onopen = function() { scrollSocketReady = true; };
+            scrollSocket.onmessage = handleSocketMessage;
+            scrollSocket.onclose = scheduleScrollSocketReconnect;
+            scrollSocket.onerror = scheduleScrollSocketReconnect;
+        }
+
+        function scheduleScrollSocketReconnect() {
+            scrollSocketReady = false;
+            if (scrollSocketRetryTimer) { return; }
+            scrollSocketRetryTimer = setTimeout(function() {
+                scrollSocketRetryTimer = null;
+                connectScrollSocket();
+            }, 800);
+        }
+
+        function sendScrollRequest(payload) {
+            if (scrollSocketReady && scrollSocket && scrollSocket.readyState === WebSocket.OPEN) {
+                scrollSocket.send(JSON.stringify(payload));
+                return;
+            }
+            enqueueScrollRequest(payload);
+            connectScrollSocket();
+        }
+
+        function enqueueScrollRequest(payload) {
+            const last = scrollPendingRequests[scrollPendingRequests.length - 1];
+            if (payload.phase === 'move' && last && last.phase === 'move') {
+                scrollPendingRequests[scrollPendingRequests.length - 1] = payload;
+            } else {
+                scrollPendingRequests.push(payload);
+            }
+            flushScrollRequests();
+        }
+
+        function flushScrollRequests() {
+            if (scrollRequestInFlight || scrollPendingRequests.length === 0) { return; }
+            const payload = scrollPendingRequests.shift();
+            scrollRequestInFlight = true;
+            fetch('/scroll', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(checkResponse)
+            .catch(showError)
+            .finally(() => {
+                scrollRequestInFlight = false;
+                flushScrollRequests();
+            });
+        }
+
+        function connectTouchpadSocket() {
+            if (touchpadSocket && (
+                touchpadSocket.readyState === WebSocket.OPEN ||
+                touchpadSocket.readyState === WebSocket.CONNECTING
+            )) { return; }
+
+            const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            touchpadSocket = new WebSocket(protocol + '//' + location.host + '/touchpad-ws');
+            touchpadSocket.onopen = function() { touchpadSocketReady = true; };
+            touchpadSocket.onmessage = handleSocketMessage;
+            touchpadSocket.onclose = scheduleTouchpadSocketReconnect;
+            touchpadSocket.onerror = scheduleTouchpadSocketReconnect;
+        }
+
+        function scheduleTouchpadSocketReconnect() {
+            touchpadSocketReady = false;
+            if (touchpadSocketRetryTimer) { return; }
+            touchpadSocketRetryTimer = setTimeout(function() {
+                touchpadSocketRetryTimer = null;
+                connectTouchpadSocket();
+            }, 800);
+        }
+
+        function sendTouchpadRequest(payload) {
+            if (touchpadSocketReady && touchpadSocket && touchpadSocket.readyState === WebSocket.OPEN) {
+                touchpadSocket.send(JSON.stringify(payload));
+                return;
+            }
+            fetch('/touchpad', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).then(checkResponse).catch(showError);
+            connectTouchpadSocket();
+        }
+
+        function handleSocketMessage(event) {
+            try {
+                const data = JSON.parse(event.data);
+                if (data && data.success === false) {
+                    throw new Error(data.error || '操作失败');
+                }
+            } catch (error) {
+                showError(error);
+            }
+        }
+
+        function checkResponse(response) {
+            if (response.ok) { return; }
+            return response.json().then(data => {
+                throw new Error(data.error || '操作失败');
+            });
+        }
+
+        function showError(error) {
+            status.innerText = '✕ ' + error.message;
+            status.style.color = '#ff3b30';
+        }
+
         function handleSend() {
             const text = input.value.trim();
             if (!text) {
@@ -115,10 +656,7 @@
             sendRequest(text);
             input.focus();
         }
-        function handleClear() {
-            input.value = '';
-            input.focus();
-        }
+
         function sendRequest(text) {
             status.innerText = "发送中...";
             status.style.color = "#888";
@@ -133,38 +671,60 @@
                     status.innerText = "✓ 已发送";
                     status.style.color = "#34c759";
                     input.value = '';
-                    setTimeout(() => status.innerText = "", 1500);
-                } else { throw new Error("Server error"); }
+                    setTimeout(() => status.innerText = "", 1200);
+                } else {
+                    throw new Error("发送失败");
+                }
             })
-            .catch(err => {
-                status.innerText = "✕ 发送失败";
-                status.style.color = "#ff3b30";
-            });
+            .catch(showError);
         }
+
+        function updateKeyboardOffset() {
+            if (!window.visualViewport) {
+                root.style.setProperty('--keyboard-offset', '0px');
+                return;
+            }
+            const offset = Math.max(0, window.innerHeight - visualViewport.height - visualViewport.offsetTop);
+            root.style.setProperty('--keyboard-offset', offset + 'px');
+        }
+
         function getHistory() {
             const stored = localStorage.getItem('typeHistory');
             return stored ? JSON.parse(stored) : [];
         }
+
         function saveToHistory(text) {
             let history = getHistory();
             history = history.filter(item => item !== text);
             history.unshift(text);
-            if (history.length > MAX_HISTORY) { history = history.slice(0, MAX_HISTORY); }
+            if (history.length > MAX_HISTORY) {
+                history = history.slice(0, MAX_HISTORY);
+            }
             localStorage.setItem('typeHistory', JSON.stringify(history));
             renderHistory();
         }
+
         function renderHistory() {
             const history = getHistory();
             historyList.innerHTML = '';
             history.forEach(text => {
                 const li = document.createElement('li');
                 li.className = 'history-item';
-                li.onclick = () => { input.value = text; handleSend(); };
+                li.onclick = () => {
+                    input.value = text;
+                    handleSend();
+                };
                 li.innerHTML = `<span class="history-text">${escapeHtml(text)}</span><span class="history-arrow">⤶</span>`;
                 historyList.appendChild(li);
             });
         }
-        function clearHistory() { localStorage.removeItem('typeHistory'); renderHistory(); }
+
+        function clearHistory() {
+            if (!confirm('确定清空所有最近记录吗？')) { return; }
+            localStorage.removeItem('typeHistory');
+            renderHistory();
+        }
+
         function escapeHtml(text) {
             const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
             return text.replace(/[&<>"']/g, function(m) { return map[m]; });
