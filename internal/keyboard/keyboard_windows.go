@@ -142,7 +142,7 @@ func StartTouchScroll() error {
 	defer touchMu.Unlock()
 
 	if touchSession.active {
-		_ = injectTouch("cleanup", touchSession.last, POINTER_FLAG_UP)
+		_ = injectTouch("cleanup", touchSession.last, POINTER_FLAG_UP|POINTER_FLAG_INRANGE)
 		touchSession.active = false
 	}
 
@@ -183,7 +183,7 @@ func EndTouchScroll() error {
 
 	pos := touchSession.last
 	touchSession.active = false
-	return injectTouch("up", pos, POINTER_FLAG_UP)
+	return injectTouch("up", pos, POINTER_FLAG_UP|POINTER_FLAG_INRANGE)
 }
 
 func MoveMouse(dx float64, dy float64) error {
