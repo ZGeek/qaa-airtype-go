@@ -10,6 +10,10 @@ func Enter() error {
 	return nil
 }
 
+func TypeText(text string) error {
+	return nil
+}
+
 func StartTouchScroll() error {
 	return nil
 }

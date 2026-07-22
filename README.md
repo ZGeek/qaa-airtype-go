@@ -22,7 +22,7 @@
 - 🌐 **局域网模式**：无需互联网，同一 WiFi 下即可使用
 - 🔽 **系统托盘**：双击托盘图标打开控制面板
 - 🔒 **单实例保证**：防止重复运行
-- 🎯 **Windows API**：使用 Shift+Insert 粘贴，兼容所有应用（包括终端）
+- 🎯 **Windows API**：使用 SendInput 直接注入 Unicode 字符，不污染系统剪贴板
 
 ## 🚀 快速开始
 
@@ -31,7 +31,7 @@
 1. 从 [Releases](https://github.com/QAA-Tools/qaa-airtype/releases) 下载 `QAA-AirType-Go.exe`
 2. 双击运行，自动启动服务并打开控制面板
 3. 手机扫描二维码或点击地址访问输入界面
-4. 在手机网页使用语音输入，按"发送"或 Enter 键，文字自动粘贴到电脑
+4. 在手机网页使用语音输入，按"发送"或 Enter 键，文字自动输入到电脑
 
 ### 方式二：从源码构建
 
@@ -154,7 +154,7 @@ go/
 - **Web 服务器**: [Gin](https://github.com/gin-gonic/gin)
 - **系统托盘**: [energye/systray](https://github.com/energye/systray)
 - **剪贴板**: [atotto/clipboard](https://github.com/atotto/clipboard)
-- **键盘模拟**: Windows API (golang.org/x/sys/windows)
+- **键盘模拟**: Windows API SendInput (golang.org/x/sys/windows)
 - **二维码**: [skip2/go-qrcode](https://github.com/skip2/go-qrcode)
 - **图标渲染**: PNG 缩放（标准库 image/png）
 - **EXE 图标**: [akavel/rsrc](https://github.com/akavel/rsrc)

@@ -5,8 +5,10 @@ package keyboard
 import (
 	"fmt"
 	"math"
+	"strings"
 	"sync"
 	"time"
+	"unicode/utf16"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -37,6 +39,9 @@ const (
 	TOUCH_MASK_PRESSURE      = 0x00000004
 	TOUCH_FEEDBACK_DEFAULT   = 0x00000001
 	TOUCH_FEEDBACK_NONE      = 0x00000003
+
+	INPUT_KEYBOARD    = 1
+	KEYEVENTF_UNICODE = 0x0004
 )
 
 var (
@@ -91,6 +96,23 @@ type touchScrollSession struct {
 	active bool
 	start  point
 	last   point
+}
+
+type KEYBDINPUT struct {
+	WVk         uint16
+	WScan       uint16
+	DwFlags     uint32
+	Time        uint32
+	DwExtraInfo uintptr
+}
+
+// INPUT 必须与 Windows 的 INPUT 结构体大小一致（x64=40 字节，x86=28 字节）。
+// Windows 的 INPUT 内含一个 union，最大成员是 MOUSEINPUT，因此即使只使用
+// KEYBDINPUT，也必须保留尾部填充字节，否则 SendInput 会因 cbSize 校验失败而拒绝输入。
+type INPUT struct {
+	Type uint32
+	Ki   KEYBDINPUT
+	_    [8]byte
 }
 
 func Paste() error {
@@ -273,6 +295,62 @@ func Enter() error {
 	time.Sleep(20 * time.Millisecond)
 
 	keybdEvent.Call(uintptr(VK_RETURN), enterScan, uintptr(KEYEVENTF_SCANCODE|KEYEVENTF_KEYUP), 0)
+
+	return nil
+}
+
+// TypeText 通过 SendInput 把文本以 Unicode 键盘事件的形式直接注入输入流，
+// 不经过系统剪贴板，避免污染用户已有的剪贴板内容。
+func TypeText(text string) error {
+	user32 := windows.NewLazySystemDLL("user32.dll")
+	sendInput := user32.NewProc("SendInput")
+
+	// 统一换行符为 \r，兼容记事本、终端、聊天框等
+	text = strings.ReplaceAll(text, "\r\n", "\r")
+	text = strings.ReplaceAll(text, "\n", "\r")
+
+	// 转为 UTF-16，自动处理代理对（如 emoji）
+	codes := utf16.Encode([]rune(text))
+
+	const batchSize = 64
+	for start := 0; start < len(codes); start += batchSize {
+		end := start + batchSize
+		if end > len(codes) {
+			end = len(codes)
+		}
+
+		batch := codes[start:end]
+		inputs := make([]INPUT, 0, len(batch)*2)
+		for _, code := range batch {
+			inputs = append(inputs, INPUT{
+				Type: INPUT_KEYBOARD,
+				Ki: KEYBDINPUT{
+					WScan:   code,
+					DwFlags: KEYEVENTF_UNICODE,
+				},
+			})
+			inputs = append(inputs, INPUT{
+				Type: INPUT_KEYBOARD,
+				Ki: KEYBDINPUT{
+					WScan:   code,
+					DwFlags: KEYEVENTF_UNICODE | KEYEVENTF_KEYUP,
+				},
+			})
+		}
+
+		sent, _, _ := sendInput.Call(
+			uintptr(len(inputs)),
+			uintptr(unsafe.Pointer(&inputs[0])),
+			unsafe.Sizeof(INPUT{}),
+		)
+		if sent == 0 {
+			return fmt.Errorf("SendInput failed: %v", windows.GetLastError())
+		}
+
+		if end < len(codes) {
+			time.Sleep(10 * time.Millisecond)
+		}
+	}
 
 	return nil
 }

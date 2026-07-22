@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/QAA-Tools/qaa-airtype/go/internal/clipboard"
 	"github.com/QAA-Tools/qaa-airtype/go/internal/config"
 	"github.com/QAA-Tools/qaa-airtype/go/internal/keyboard"
 	"github.com/QAA-Tools/qaa-airtype/go/internal/network"
@@ -189,14 +188,10 @@ func typeHandler(c *gin.Context) {
 		return
 	}
 
-	if err := clipboard.Write(req.Text); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false})
-		return
-	}
-
+	// 等待用户在手机端点发送后把焦点切回电脑端输入框
 	time.Sleep(100 * time.Millisecond)
 
-	if err := keyboard.Paste(); err != nil {
+	if err := keyboard.TypeText(req.Text); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false})
 		return
 	}
