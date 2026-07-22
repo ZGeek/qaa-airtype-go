@@ -85,10 +85,12 @@
             border-radius: 10px;
             background: white;
             color: #888;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s;
+            white-space: nowrap;
+            text-align: center;
         }
         .mode-btn.active {
             border-color: #007AFF;
@@ -180,7 +182,7 @@
             <label>输入模式</label>
             <div class="mode-toggle">
                 <button class="mode-btn" data-mode="sendinput">键盘注入</button>
-                <button class="mode-btn" data-mode="clipboard">剪贴板</button>
+                <button class="mode-btn" data-mode="clipboard">剪贴板注入</button>
             </div>
         </div>
     </div>
