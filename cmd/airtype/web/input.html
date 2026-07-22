@@ -228,6 +228,7 @@
             right: 14px;
             bottom: calc(var(--keyboard-offset) + 10px + env(safe-area-inset-bottom));
             z-index: 30;
+            transition: bottom 0.2s ease-out;
             touch-action: manipulation;
             user-select: none;
             -webkit-user-select: none;
@@ -345,11 +346,32 @@
             updateKeyboardOffset();
         };
 
+        let keyboardOffsetRAF = null;
+        let layoutHeight = window.innerHeight;
+
         if (window.visualViewport) {
-            visualViewport.addEventListener('resize', updateKeyboardOffset);
-            visualViewport.addEventListener('scroll', updateKeyboardOffset);
+            visualViewport.addEventListener('resize', requestKeyboardOffsetUpdate);
+            visualViewport.addEventListener('scroll', requestKeyboardOffsetUpdate);
         }
-        window.addEventListener('resize', updateKeyboardOffset);
+
+        function requestKeyboardOffsetUpdate() {
+            if (keyboardOffsetRAF) return;
+            keyboardOffsetRAF = requestAnimationFrame(updateKeyboardOffset);
+        }
+
+        function updateKeyboardOffset() {
+            keyboardOffsetRAF = null;
+            const vv = window.visualViewport;
+            if (!vv) return;
+
+            const innerH = window.innerHeight;
+            if (Math.abs(innerH - vv.height) < 40) {
+                layoutHeight = innerH;
+            }
+
+            const offset = Math.max(0, layoutHeight - vv.height);
+            root.style.setProperty('--keyboard-offset', offset + 'px');
+        }
 
         input.addEventListener("keydown", function(event) {
             if (event.key === "Enter" && !event.shiftKey) {
@@ -749,15 +771,6 @@
                 }
             })
             .catch(showError);
-        }
-
-        function updateKeyboardOffset() {
-            if (!window.visualViewport) {
-                root.style.setProperty('--keyboard-offset', '0px');
-                return;
-            }
-            const offset = Math.max(0, window.innerHeight - visualViewport.height - visualViewport.offsetTop);
-            root.style.setProperty('--keyboard-offset', offset + 'px');
         }
 
         function getHistory() {
