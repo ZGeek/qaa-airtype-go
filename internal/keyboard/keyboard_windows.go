@@ -254,10 +254,13 @@ func injectTouch(phase string, pos point, flags uint32) error {
 	contactSize := int32(4)
 	info := pointerTouchInfo{
 		PointerInfo: pointerInfo{
-			PointerType:     POINTER_INPUT_TYPE_TOUCH,
-			PointerID:       0,
-			PointerFlags:    flags,
-			PtPixelLocation: pos,
+			PointerType:          POINTER_INPUT_TYPE_TOUCH,
+			PointerID:            1,
+			PointerFlags:         flags,
+			PtPixelLocation:      pos,
+			PtHimetricLocation:   pos,
+			PtPixelLocationRaw:   pos,
+			PtHimetricLocationRaw: pos,
 		},
 	}
 	if flags&POINTER_FLAG_UP == 0 {
