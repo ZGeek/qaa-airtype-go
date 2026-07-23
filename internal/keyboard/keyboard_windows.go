@@ -26,7 +26,12 @@ const (
 	MOUSEEVENTF_LEFTUP    = 0x0004
 	MOUSEEVENTF_RIGHTDOWN = 0x0008
 	MOUSEEVENTF_RIGHTUP   = 0x0010
+	MOUSEEVENTF_WHEEL     = 0x0800
+	MOUSEEVENTF_HWHEEL    = 0x01000
 	MAPVK_VK_TO_VSC       = 0
+	VK_CONTROL            = 0x11
+	VK_LWIN               = 0x5B
+	VK_TAB                = 0x09
 
 	POINTER_INPUT_TYPE_TOUCH = 2
 	POINTER_FLAG_INRANGE     = 0x00000002
@@ -228,6 +233,48 @@ func RightClick() error {
 	mouseEvent.Call(uintptr(MOUSEEVENTF_RIGHTDOWN), 0, 0, 0, 0)
 	time.Sleep(20 * time.Millisecond)
 	mouseEvent.Call(uintptr(MOUSEEVENTF_RIGHTUP), 0, 0, 0, 0)
+	return nil
+}
+
+func ScrollWheel(dx float64, dy float64) error {
+	user32 := windows.NewLazySystemDLL("user32.dll")
+	mouseEvent := user32.NewProc("mouse_event")
+
+	wheelY := int32(math.Round(-dy))
+	wheelX := int32(math.Round(dx))
+	if wheelY != 0 {
+		mouseEvent.Call(uintptr(MOUSEEVENTF_WHEEL), 0, 0, uintptr(uint32(wheelY)), 0)
+	}
+	if wheelX != 0 {
+		mouseEvent.Call(uintptr(MOUSEEVENTF_HWHEEL), 0, 0, uintptr(uint32(wheelX)), 0)
+	}
+	return nil
+}
+
+func ZoomWheel(delta float64) error {
+	user32 := windows.NewLazySystemDLL("user32.dll")
+	keybdEvent := user32.NewProc("keybd_event")
+	mapVirtualKeyW := user32.NewProc("MapVirtualKeyW")
+	mouseEvent := user32.NewProc("mouse_event")
+
+	ctrlScan, _, _ := mapVirtualKeyW.Call(uintptr(VK_CONTROL), uintptr(MAPVK_VK_TO_VSC))
+	keybdEvent.Call(uintptr(VK_CONTROL), ctrlScan, uintptr(KEYEVENTF_SCANCODE), 0)
+	mouseEvent.Call(uintptr(MOUSEEVENTF_WHEEL), 0, 0, uintptr(uint32(int32(math.Round(delta)))), 0)
+	keybdEvent.Call(uintptr(VK_CONTROL), ctrlScan, uintptr(KEYEVENTF_SCANCODE|KEYEVENTF_KEYUP), 0)
+	return nil
+}
+
+func TaskView() error {
+	user32 := windows.NewLazySystemDLL("user32.dll")
+	keybdEvent := user32.NewProc("keybd_event")
+	mapVirtualKeyW := user32.NewProc("MapVirtualKeyW")
+
+	winScan, _, _ := mapVirtualKeyW.Call(uintptr(VK_LWIN), uintptr(MAPVK_VK_TO_VSC))
+	tabScan, _, _ := mapVirtualKeyW.Call(uintptr(VK_TAB), uintptr(MAPVK_VK_TO_VSC))
+	keybdEvent.Call(uintptr(VK_LWIN), winScan, uintptr(KEYEVENTF_SCANCODE), 0)
+	keybdEvent.Call(uintptr(VK_TAB), tabScan, uintptr(KEYEVENTF_SCANCODE), 0)
+	keybdEvent.Call(uintptr(VK_TAB), tabScan, uintptr(KEYEVENTF_SCANCODE|KEYEVENTF_KEYUP), 0)
+	keybdEvent.Call(uintptr(VK_LWIN), winScan, uintptr(KEYEVENTF_SCANCODE|KEYEVENTF_KEYUP), 0)
 	return nil
 }
 

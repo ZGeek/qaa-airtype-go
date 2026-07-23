@@ -45,3 +45,15 @@ func LeftUp() error {
 func RightClick() error {
 	return nil
 }
+
+func ScrollWheel(dx float64, dy float64) error {
+	return nil
+}
+
+func ZoomWheel(delta float64) error {
+	return nil
+}
+
+func TaskView() error {
+	return nil
+}

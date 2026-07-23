@@ -43,6 +43,7 @@ type touchpadRequest struct {
 	Action string  `json:"action"`
 	DX     float64 `json:"dx"`
 	DY     float64 `json:"dy"`
+	Delta  float64 `json:"delta"`
 }
 
 func main() {
@@ -421,6 +422,12 @@ func applyTouchpad(req touchpadRequest) error {
 		return keyboard.LeftUp()
 	case "rightClick":
 		return keyboard.RightClick()
+	case "wheel":
+		return keyboard.ScrollWheel(req.DX*cfg.Sensitivity*80, req.DY*cfg.Sensitivity*80)
+	case "zoom":
+		return keyboard.ZoomWheel(req.Delta * 120)
+	case "taskView":
+		return keyboard.TaskView()
 	default:
 		return fmt.Errorf("unknown touchpad action: %s", req.Action)
 	}
