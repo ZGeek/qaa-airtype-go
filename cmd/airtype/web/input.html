@@ -87,14 +87,14 @@
             border: 1px dashed #d1d1d6;
             border-radius: 10px;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
             text-align: center;
             color: #8e8e93;
             font-size: 15px;
             line-height: 1.6;
-            gap: 6px;
+            user-select: none;
+            -webkit-user-select: none;
         }
         .touchpad-fullscreen-toggle {
             position: absolute;
@@ -401,7 +401,6 @@
         let padLongPressFired = false;
         let padDragMode = false;
         let padLongPressTimer = null;
-        let lastPadMoveAt = 0;
         const PAD_MOVE_THRESHOLD = 7;
         const LONG_PRESS_MS = 560;
 
@@ -439,31 +438,42 @@
             root.style.setProperty('--keyboard-offset', offset + 'px');
         }
 
-        document.addEventListener('fullscreenchange', function() {
-            if (document.fullscreenElement) {
-                document.body.classList.add('landscape');
-                const toggle = document.querySelector('.touchpad-fullscreen-toggle');
-                if (toggle) toggle.textContent = '✕';
-            } else {
-                document.body.classList.remove('landscape');
-                const toggle = document.querySelector('.touchpad-fullscreen-toggle');
-                if (toggle) toggle.textContent = '⛶';
-                if (screen.orientation && screen.orientation.unlock) {
-                    screen.orientation.unlock();
-                }
+        let fullscreenManual = false;
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+
+        function handleFullscreenChange() {
+            const active = !!(document.fullscreenElement || document.webkitFullscreenElement);
+            document.body.classList.toggle('landscape', active);
+            const toggle = document.querySelector('.touchpad-fullscreen-toggle');
+            if (toggle) toggle.textContent = active ? '✕' : '⛶';
+            if (!active && screen.orientation && screen.orientation.unlock) {
+                screen.orientation.unlock();
             }
-        });
+            fullscreenManual = active;
+        }
 
         function toggleFullscreen() {
-            if (document.fullscreenElement) {
-                document.exitFullscreen();
-            } else {
-                document.documentElement.requestFullscreen().then(function() {
-                    if (screen.orientation && screen.orientation.lock) {
-                        return screen.orientation.lock('landscape').catch(function() {});
-                    }
-                }).catch(function() {});
+            if (document.fullscreenElement || document.webkitFullscreenElement) {
+                if (document.exitFullscreen) document.exitFullscreen();
+                else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+                return;
             }
+
+            const el = document.documentElement;
+            const req = el.requestFullscreen || el.webkitRequestFullscreen;
+            if (!req) {
+                fullscreenManual = true;
+                document.body.classList.add('landscape');
+                document.querySelector('.touchpad-fullscreen-toggle').textContent = '✕';
+                return;
+            }
+            req.call(el).then(function() {
+                if (screen.orientation && screen.orientation.lock) {
+                    screen.orientation.lock('landscape').catch(function(){});
+                }
+            }).catch(function(){});
         }
 
         input.addEventListener("keydown", function(event) {
@@ -526,10 +536,9 @@
         touchpad.addEventListener('pointermove', function(event) {
             if (event.pointerId !== padPointerId) { return; }
             event.preventDefault();
-            const events = event.getCoalescedEvents ? event.getCoalescedEvents() : [event];
-            const latest = events[events.length - 1] || event;
-            const totalDx = latest.clientX - padStartX;
-            const totalDy = latest.clientY - padStartY;
+
+            const totalDx = event.clientX - padStartX;
+            const totalDy = event.clientY - padStartY;
             if (Math.hypot(totalDx, totalDy) > PAD_MOVE_THRESHOLD) {
                 padMoved = true;
                 if (!padDragMode) {
@@ -537,14 +546,10 @@
                 }
             }
 
-            const now = performance.now();
-            if (now - lastPadMoveAt < 8) { return; }
-            lastPadMoveAt = now;
-
-            const dx = latest.clientX - padLastX;
-            const dy = latest.clientY - padLastY;
-            padLastX = latest.clientX;
-            padLastY = latest.clientY;
+            const dx = event.clientX - padLastX;
+            const dy = event.clientY - padLastY;
+            padLastX = event.clientX;
+            padLastY = event.clientY;
             if (dx || dy) {
                 sendTouchpadRequest({
                     action: 'move',
