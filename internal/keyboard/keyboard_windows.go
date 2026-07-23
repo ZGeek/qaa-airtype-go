@@ -240,8 +240,8 @@ func ScrollWheel(dx float64, dy float64) error {
 	user32 := windows.NewLazySystemDLL("user32.dll")
 	mouseEvent := user32.NewProc("mouse_event")
 
-	wheelY := int32(math.Round(-dy))
-	wheelX := int32(math.Round(dx))
+	wheelY := int32(math.Round(dy))
+	wheelX := int32(math.Round(-dx))
 	if wheelY != 0 {
 		mouseEvent.Call(uintptr(MOUSEEVENTF_WHEEL), 0, 0, uintptr(uint32(wheelY)), 0)
 	}
