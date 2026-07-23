@@ -366,7 +366,11 @@ func applyScroll(req scrollRequest) error {
 	case "start":
 		return keyboard.StartTouchScroll()
 	case "move":
-		return keyboard.MoveTouchScroll(req.OffsetY * cfg.Sensitivity)
+		offsetY := req.OffsetY * cfg.Sensitivity
+		if cfg.ScrollMode == "classic" {
+			offsetY = -offsetY
+		}
+		return keyboard.MoveTouchScroll(offsetY)
 	case "end", "cancel":
 		return keyboard.EndTouchScroll()
 	default:
