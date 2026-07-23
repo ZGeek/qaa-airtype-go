@@ -115,9 +115,8 @@
             color: #888;
         }
         body.landscape {
-            padding: 0 max(0px, env(safe-area-inset-right)) 0 max(0px, env(safe-area-inset-left));
+            padding: 0;
             gap: 0;
-            background: #000;
         }
         body.landscape textarea,
         body.landscape .history-container,
@@ -126,36 +125,14 @@
             display: none;
         }
         body.landscape .pad-area {
-            height: 100%;
-            flex: 1 1 100%;
-            gap: 0;
-            grid-template-columns: minmax(0, 1fr) 48px;
-            border-radius: 0;
+            height: auto;
+            flex: 1 1 auto;
         }
         body.landscape .surface {
             border-radius: 0;
-            border: none;
-            box-shadow: none;
-        }
-        body.landscape .touchpad {
-            padding: 12px;
-            background: #1c1c1e;
-            border-radius: 0;
-        }
-        body.landscape .touchpad-inner {
-            border-color: #3a3a3c;
-            color: #636366;
-            font-size: 13px;
-        }
-        body.landscape #scrollZone {
-            background: #2c2c2e;
-            border-radius: 0;
-        }
-        body.landscape .scroll-grip span {
-            background: #636366;
         }
         body.landscape .touchpad-fullscreen-toggle {
-            background: rgba(255,255,255,0.08);
+            background: rgba(0,0,0,0.06);
             color: #888;
         }
         .scroll-grip {
