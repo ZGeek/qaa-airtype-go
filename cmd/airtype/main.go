@@ -271,6 +271,7 @@ func configHandler(c *gin.Context) {
 		Sensitivity       *float64 `json:"sensitivity"`
 		ScrollSensitivity *float64 `json:"scrollSensitivity"`
 		TextMode          *string  `json:"textMode"`
+		ScrollMode        *string  `json:"scrollMode"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid config"})
@@ -300,6 +301,12 @@ func configHandler(c *gin.Context) {
 	}
 	if cfg.TextMode != "sendinput" && cfg.TextMode != "clipboard" {
 		cfg.TextMode = "sendinput"
+	}
+	if req.ScrollMode != nil {
+		cfg.ScrollMode = *req.ScrollMode
+	}
+	if cfg.ScrollMode != "natural" && cfg.ScrollMode != "classic" {
+		cfg.ScrollMode = "natural"
 	}
 
 	if err := config.Save(cfg); err != nil {
@@ -423,7 +430,13 @@ func applyTouchpad(req touchpadRequest) error {
 	case "rightClick":
 		return keyboard.RightClick()
 	case "wheel":
-		return keyboard.ScrollWheel(req.DX*cfg.Sensitivity*80, req.DY*cfg.Sensitivity*80)
+		dx := req.DX * cfg.Sensitivity * 80
+		dy := req.DY * cfg.Sensitivity * 80
+		if cfg.ScrollMode == "classic" {
+			dx = -dx
+			dy = -dy
+		}
+		return keyboard.ScrollWheel(dx, dy)
 	case "zoom":
 		return keyboard.ZoomWheel(req.Delta * 120)
 	case "taskView":

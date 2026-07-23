@@ -12,6 +12,7 @@ type Config struct {
 	Sensitivity       float64 `json:"sensitivity"`
 	ScrollSensitivity float64 `json:"scrollSensitivity,omitempty"`
 	TextMode          string  `json:"textMode"`
+	ScrollMode        string  `json:"scrollMode"`
 }
 
 func getConfigPath() string {
@@ -29,7 +30,7 @@ func getConfigPath() string {
 }
 
 func Load() Config {
-	config := Config{Port: "5000", Sensitivity: 1.5, TextMode: "sendinput"}
+	config := Config{Port: "5000", Sensitivity: 1.5, TextMode: "sendinput", ScrollMode: "natural"}
 
 	data, err := os.ReadFile(getConfigPath())
 	if err != nil {
@@ -51,6 +52,9 @@ func Load() Config {
 	}
 	if config.TextMode != "sendinput" && config.TextMode != "clipboard" {
 		config.TextMode = "sendinput"
+	}
+	if config.ScrollMode != "natural" && config.ScrollMode != "classic" {
+		config.ScrollMode = "natural"
 	}
 	return config
 }

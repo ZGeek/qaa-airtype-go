@@ -181,8 +181,15 @@
         <div class="setting-row">
             <label>输入模式</label>
             <div class="mode-toggle">
-                <button class="mode-btn" data-mode="sendinput">键盘注入</button>
-                <button class="mode-btn" data-mode="clipboard">剪贴板注入</button>
+                <button class="mode-btn" data-text-mode="sendinput">键盘注入</button>
+                <button class="mode-btn" data-text-mode="clipboard">剪贴板注入</button>
+            </div>
+        </div>
+        <div class="setting-row">
+            <label>滚动模式</label>
+            <div class="mode-toggle">
+                <button class="mode-btn" data-scroll-mode="natural">自然滚动</button>
+                <button class="mode-btn" data-scroll-mode="classic">传统滚动</button>
             </div>
         </div>
     </div>
@@ -279,9 +286,14 @@
                 slider.value = Math.min(5, Math.max(0.5, value)).toFixed(1);
                 output.value = Number(slider.value).toFixed(1);
 
-                const mode = data.textMode || 'sendinput';
-                document.querySelectorAll('.mode-btn').forEach(btn => {
-                    btn.classList.toggle('active', btn.dataset.mode === mode);
+                const textMode = data.textMode || 'sendinput';
+                document.querySelectorAll('[data-text-mode]').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.textMode === textMode);
+                });
+
+                const scrollMode = data.scrollMode || 'natural';
+                document.querySelectorAll('[data-scroll-mode]').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.scrollMode === scrollMode);
                 });
             } catch (error) {
                 console.error('Error:', error);
@@ -303,16 +315,30 @@
                 }, 350);
             });
 
-            document.querySelectorAll('.mode-btn').forEach(btn => {
+            document.querySelectorAll('[data-text-mode]').forEach(btn => {
                 btn.addEventListener('click', function() {
                     if (this.classList.contains('active')) return;
-                    const mode = this.dataset.mode;
-                    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                    const mode = this.dataset.textMode;
+                    document.querySelectorAll('[data-text-mode]').forEach(b => b.classList.remove('active'));
                     this.classList.add('active');
                     fetch('/config', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ textMode: mode })
+                    }).catch(() => {});
+                });
+            });
+
+            document.querySelectorAll('[data-scroll-mode]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    if (this.classList.contains('active')) return;
+                    const mode = this.dataset.scrollMode;
+                    document.querySelectorAll('[data-scroll-mode]').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    fetch('/config', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ scrollMode: mode })
                     }).catch(() => {});
                 });
             });
