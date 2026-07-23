@@ -410,7 +410,6 @@
             connectScrollSocket();
             connectTouchpadSocket();
             updateKeyboardOffset();
-            initLandscapeDetection();
         };
 
         let keyboardOffsetRAF = null;
@@ -440,26 +439,31 @@
             root.style.setProperty('--keyboard-offset', offset + 'px');
         }
 
-        let landscapeOverride = false;
-
-        function initLandscapeDetection() {
-            const mql = window.matchMedia('(orientation: landscape)');
-            applyLandscape(mql.matches);
-            mql.addEventListener('change', e => {
-                landscapeOverride = false;
-                applyLandscape(e.matches);
-            });
-        }
-
-        function applyLandscape(on) {
-            document.body.classList.toggle('landscape', on);
-            const toggle = document.querySelector('.touchpad-fullscreen-toggle');
-            if (toggle) toggle.textContent = on ? '✕' : '⛶';
-        }
+        document.addEventListener('fullscreenchange', function() {
+            if (document.fullscreenElement) {
+                document.body.classList.add('landscape');
+                const toggle = document.querySelector('.touchpad-fullscreen-toggle');
+                if (toggle) toggle.textContent = '✕';
+            } else {
+                document.body.classList.remove('landscape');
+                const toggle = document.querySelector('.touchpad-fullscreen-toggle');
+                if (toggle) toggle.textContent = '⛶';
+                if (screen.orientation && screen.orientation.unlock) {
+                    screen.orientation.unlock();
+                }
+            }
+        });
 
         function toggleFullscreen() {
-            landscapeOverride = !landscapeOverride;
-            applyLandscape(landscapeOverride);
+            if (document.fullscreenElement) {
+                document.exitFullscreen();
+            } else {
+                document.documentElement.requestFullscreen().then(function() {
+                    if (screen.orientation && screen.orientation.lock) {
+                        return screen.orientation.lock('landscape').catch(function() {});
+                    }
+                }).catch(function() {});
+            }
         }
 
         input.addEventListener("keydown", function(event) {
