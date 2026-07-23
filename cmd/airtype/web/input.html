@@ -95,6 +95,7 @@
             line-height: 1.6;
             user-select: none;
             -webkit-user-select: none;
+            pointer-events: none;
         }
         .touchpad-fullscreen-toggle {
             position: absolute;
@@ -112,6 +113,7 @@
             z-index: 5;
             user-select: none;
             -webkit-user-select: none;
+            touch-action: manipulation;
             color: #888;
         }
         body.landscape {
@@ -302,7 +304,7 @@
 
     <div class="pad-area">
         <div id="touchpad" class="surface touchpad" aria-label="虚拟触摸板">
-            <div class="touchpad-fullscreen-toggle" onclick="toggleFullscreen()">⛶</div>
+            <div class="touchpad-fullscreen-toggle" id="touchpadFullscreenToggle" aria-label="全屏触摸板">⛶</div>
             <div class="touchpad-inner">虚拟触摸板</div>
         </div>
         <div id="scrollZone" class="surface" aria-label="触摸滚动区">
@@ -350,6 +352,7 @@
         const historyList = document.getElementById('historyList');
         const sendBar = document.querySelector('.send-bar');
         const sendBtn = document.getElementById('sendBtn');
+        const fullscreenToggle = document.getElementById('touchpadFullscreenToggle');
         const root = document.documentElement;
         const MAX_HISTORY = 50;
         const VISIBLE_HISTORY = 3;
@@ -378,6 +381,7 @@
         let padLongPressFired = false;
         let padDragMode = false;
         let padLongPressTimer = null;
+        let lastPadMoveAt = 0;
         const PAD_MOVE_THRESHOLD = 7;
         const LONG_PRESS_MS = 560;
 
@@ -387,6 +391,16 @@
             connectTouchpadSocket();
             updateKeyboardOffset();
         };
+
+        fullscreenToggle.addEventListener('pointerdown', function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }, { passive: false });
+        fullscreenToggle.addEventListener('click', function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            toggleFullscreen();
+        });
 
         let keyboardOffsetRAF = null;
         let layoutHeight = window.innerHeight;
@@ -421,36 +435,51 @@
         document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
 
         function handleFullscreenChange() {
-            const active = !!(document.fullscreenElement || document.webkitFullscreenElement);
-            document.body.classList.toggle('landscape', active);
-            const toggle = document.querySelector('.touchpad-fullscreen-toggle');
-            if (toggle) toggle.textContent = active ? '✕' : '⛶';
-            if (!active && screen.orientation && screen.orientation.unlock) {
-                screen.orientation.unlock();
-            }
-            fullscreenManual = active;
+            setTouchpadFullscreen(isNativeFullscreen());
         }
 
         function toggleFullscreen() {
-            if (document.fullscreenElement || document.webkitFullscreenElement) {
+            if (isNativeFullscreen()) {
                 if (document.exitFullscreen) document.exitFullscreen();
                 else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+                return;
+            }
+            if (fullscreenManual) {
+                setTouchpadFullscreen(false);
                 return;
             }
 
             const el = document.documentElement;
             const req = el.requestFullscreen || el.webkitRequestFullscreen;
             if (!req) {
-                fullscreenManual = true;
-                document.body.classList.add('landscape');
-                document.querySelector('.touchpad-fullscreen-toggle').textContent = '✕';
+                setTouchpadFullscreen(true);
+                lockLandscape();
                 return;
             }
-            req.call(el).then(function() {
-                if (screen.orientation && screen.orientation.lock) {
-                    screen.orientation.lock('landscape').catch(function(){});
-                }
-            }).catch(function(){});
+            setTouchpadFullscreen(true);
+            Promise.resolve(req.call(el)).then(lockLandscape).catch(function() {
+                lockLandscape();
+            });
+        }
+
+        function isNativeFullscreen() {
+            return !!(document.fullscreenElement || document.webkitFullscreenElement);
+        }
+
+        function setTouchpadFullscreen(active) {
+            fullscreenManual = active && !isNativeFullscreen();
+            document.body.classList.toggle('landscape', active);
+            fullscreenToggle.textContent = active ? '✕' : '⛶';
+            if (!active && screen.orientation && screen.orientation.unlock) {
+                screen.orientation.unlock();
+            }
+        }
+
+        function lockLandscape() {
+            if (screen.orientation && screen.orientation.lock) {
+                return screen.orientation.lock('landscape').catch(function(){});
+            }
+            return Promise.resolve();
         }
 
         input.addEventListener("keydown", function(event) {
@@ -513,9 +542,10 @@
         touchpad.addEventListener('pointermove', function(event) {
             if (event.pointerId !== padPointerId) { return; }
             event.preventDefault();
-
-            const totalDx = event.clientX - padStartX;
-            const totalDy = event.clientY - padStartY;
+            const events = event.getCoalescedEvents ? event.getCoalescedEvents() : [event];
+            const latest = events[events.length - 1] || event;
+            const totalDx = latest.clientX - padStartX;
+            const totalDy = latest.clientY - padStartY;
             if (Math.hypot(totalDx, totalDy) > PAD_MOVE_THRESHOLD) {
                 padMoved = true;
                 if (!padDragMode) {
@@ -523,10 +553,14 @@
                 }
             }
 
-            const dx = event.clientX - padLastX;
-            const dy = event.clientY - padLastY;
-            padLastX = event.clientX;
-            padLastY = event.clientY;
+            const now = performance.now();
+            if (now - lastPadMoveAt < 8) { return; }
+            lastPadMoveAt = now;
+
+            const dx = latest.clientX - padLastX;
+            const dy = latest.clientY - padLastY;
+            padLastX = latest.clientX;
+            padLastY = latest.clientY;
             if (dx || dy) {
                 sendTouchpadRequest({
                     action: 'move',
