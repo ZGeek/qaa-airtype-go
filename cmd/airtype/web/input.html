@@ -384,6 +384,7 @@
         let lastPadMoveAt = 0;
         let lastPadTapAt = 0;
         let advancedGesture = null;
+        let advancedTwoMode = null;
         let advancedLastCenter = null;
         let advancedLastDistance = 0;
         let advancedThreeStartY = 0;
@@ -536,6 +537,7 @@
 
         touchpad.addEventListener('pointerdown', function(event) {
             event.preventDefault();
+            if (advancedGesture && event.pointerType === 'touch') { return; }
             if (!event.isPrimary) { return; }
             if (padPointerId !== null) { return; }
             padPointerId = event.pointerId;
@@ -572,6 +574,7 @@
         touchpad.addEventListener('pointermove', function(event) {
             if (event.pointerId !== padPointerId) { return; }
             event.preventDefault();
+            if (advancedGesture && event.pointerType === 'touch') { return; }
             const events = event.getCoalescedEvents ? event.getCoalescedEvents() : [event];
             const latest = events[events.length - 1] || event;
             const totalDx = latest.clientX - padStartX;
@@ -655,6 +658,7 @@
         function endTouchpadGesture(event) {
             if (event.pointerId !== padPointerId) { return; }
             event.preventDefault();
+            if (advancedGesture && event.pointerType === 'touch') { return; }
             clearPadLongPressTimer();
             if (padDragMode) {
                 sendTouchpadRequest({ action: 'leftUp' });
@@ -668,6 +672,7 @@
         function cancelTouchpadGesture(event) {
             if (event.pointerId !== padPointerId) { return; }
             event.preventDefault();
+            if (advancedGesture && event.pointerType === 'touch') { return; }
             clearPadLongPressTimer();
             if (padDragMode) {
                 sendTouchpadRequest({ action: 'leftUp' });
@@ -677,6 +682,9 @@
 
         function resetTouchpadGesture() {
             touchpad.classList.remove('active');
+            if (padPointerId !== null && touchpad.hasPointerCapture && touchpad.hasPointerCapture(padPointerId)) {
+                touchpad.releasePointerCapture(padPointerId);
+            }
             padPointerId = null;
             padMoved = false;
             padLongPressFired = false;
@@ -701,10 +709,12 @@
         function startAdvancedGesture(touches) {
             if (touches.length >= 3) {
                 advancedGesture = 'three';
+                advancedTwoMode = null;
                 advancedThreeStartY = touchCenter(touches).y;
                 return;
             }
             advancedGesture = 'two';
+            advancedTwoMode = null;
             advancedLastCenter = touchCenter(touches);
             advancedLastDistance = touchDistance(touches);
             lastAdvancedMoveAt = 0;
@@ -717,6 +727,7 @@
                 if (dy < -48) {
                     sendTouchpadRequest({ action: 'taskView' });
                     advancedGesture = null;
+                    advancedTwoMode = null;
                 }
                 return;
             }
@@ -734,7 +745,11 @@
             advancedLastCenter = center;
             advancedLastDistance = distance;
 
-            if (Math.abs(pinch) > Math.max(Math.abs(dx), Math.abs(dy)) && Math.abs(pinch) > 2) {
+            if (!advancedTwoMode) {
+                advancedTwoMode = Math.abs(pinch) > Math.max(Math.abs(dx), Math.abs(dy)) && Math.abs(pinch) > 2 ? 'zoom' : 'wheel';
+            }
+            if (advancedTwoMode === 'zoom') {
+                if (Math.abs(pinch) <= 2) { return; }
                 sendTouchpadRequest({ action: 'zoom', delta: pinch > 0 ? 1 : -1 });
                 return;
             }
@@ -748,6 +763,7 @@
             event.preventDefault();
             if (!event.touches || event.touches.length < 2) {
                 advancedGesture = null;
+                advancedTwoMode = null;
                 advancedLastCenter = null;
                 advancedLastDistance = 0;
             }
