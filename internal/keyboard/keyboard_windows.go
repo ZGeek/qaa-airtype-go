@@ -268,11 +268,9 @@ func injectTouch(phase string, pos point, flags uint32) error {
 			PtHimetricLocationRaw: pos,
 		},
 	}
-	if flags&POINTER_FLAG_UP == 0 {
-		info.TouchMask = TOUCH_MASK_CONTACTAREA
-		info.RcContact = contact
-		info.RcContactRaw = contact
-	}
+	info.TouchMask = TOUCH_MASK_CONTACTAREA
+	info.RcContact = contact
+	info.RcContactRaw = contact
 
 	ret, _, err := injectTouchInput.Call(1, uintptr(unsafe.Pointer(&info)))
 	if ret == 0 {
