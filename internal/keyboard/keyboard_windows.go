@@ -27,10 +27,6 @@ const (
 	MOUSEEVENTF_RIGHTDOWN = 0x0008
 	MOUSEEVENTF_RIGHTUP   = 0x0010
 	MAPVK_VK_TO_VSC       = 0
-	SM_XVIRTUALSCREEN     = 76
-	SM_YVIRTUALSCREEN     = 77
-	SM_CXVIRTUALSCREEN    = 78
-	SM_CYVIRTUALSCREEN    = 79
 
 	POINTER_INPUT_TYPE_TOUCH = 2
 	POINTER_FLAG_INRANGE     = 0x00000002
@@ -146,7 +142,7 @@ func StartTouchScroll() error {
 	defer touchMu.Unlock()
 
 	if touchSession.active {
-		_ = injectTouch("cleanup", touchSession.last, POINTER_FLAG_UP|POINTER_FLAG_INRANGE)
+		_ = injectTouch("cleanup", touchSession.last, POINTER_FLAG_UP)
 		touchSession.active = false
 	}
 
@@ -187,7 +183,7 @@ func EndTouchScroll() error {
 
 	pos := touchSession.last
 	touchSession.active = false
-	return injectTouch("up", pos, POINTER_FLAG_UP|POINTER_FLAG_INRANGE)
+	return injectTouch("up", pos, POINTER_FLAG_UP)
 }
 
 func MoveMouse(dx float64, dy float64) error {
@@ -256,59 +252,24 @@ func injectTouch(phase string, pos point, flags uint32) error {
 	injectTouchInput := user32.NewProc("InjectTouchInput")
 
 	contactSize := int32(4)
-	contact := contactRect(pos, contactSize)
 	info := pointerTouchInfo{
 		PointerInfo: pointerInfo{
-			PointerType:          POINTER_INPUT_TYPE_TOUCH,
-			PointerID:            1,
-			PointerFlags:         flags,
-			PtPixelLocation:      pos,
-			PtHimetricLocation:   pos,
-			PtPixelLocationRaw:   pos,
-			PtHimetricLocationRaw: pos,
+			PointerType:     POINTER_INPUT_TYPE_TOUCH,
+			PointerID:       0,
+			PointerFlags:    flags,
+			PtPixelLocation: pos,
 		},
 	}
-	info.TouchMask = TOUCH_MASK_CONTACTAREA
-	info.RcContact = contact
-	info.RcContactRaw = contact
+	if flags&POINTER_FLAG_UP == 0 {
+		info.TouchMask = TOUCH_MASK_CONTACTAREA
+		info.RcContact = rect{Left: pos.X - contactSize, Top: pos.Y - contactSize, Right: pos.X + contactSize, Bottom: pos.Y + contactSize}
+	}
 
 	ret, _, err := injectTouchInput.Call(1, uintptr(unsafe.Pointer(&info)))
 	if ret == 0 {
 		return fmt.Errorf("%s: %w", phase, err)
 	}
 	return nil
-}
-
-func contactRect(pos point, size int32) rect {
-	user32 := windows.NewLazySystemDLL("user32.dll")
-	getSystemMetrics := user32.NewProc("GetSystemMetrics")
-
-	x, _, _ := getSystemMetrics.Call(uintptr(SM_XVIRTUALSCREEN))
-	y, _, _ := getSystemMetrics.Call(uintptr(SM_YVIRTUALSCREEN))
-	w, _, _ := getSystemMetrics.Call(uintptr(SM_CXVIRTUALSCREEN))
-	h, _, _ := getSystemMetrics.Call(uintptr(SM_CYVIRTUALSCREEN))
-
-	left := int32(x)
-	top := int32(y)
-	right := left + int32(w)
-	bottom := top + int32(h)
-
-	return rect{
-		Left:   clampInt32(pos.X-size, left, right-1),
-		Top:    clampInt32(pos.Y-size, top, bottom-1),
-		Right:  clampInt32(pos.X+size, left+1, right),
-		Bottom: clampInt32(pos.Y+size, top+1, bottom),
-	}
-}
-
-func clampInt32(v, min, max int32) int32 {
-	if v < min {
-		return min
-	}
-	if v > max {
-		return max
-	}
-	return v
 }
 
 func initTouchInjection() error {
